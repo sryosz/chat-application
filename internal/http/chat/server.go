@@ -9,6 +9,7 @@ import (
 
 type chatService interface {
 	CreateUser(ctx context.Context, username, email, password string) error
+	Login(c context.Context, email, password string) (string, error)
 }
 
 type Server struct {
@@ -30,6 +31,8 @@ func NewServer(log *slog.Logger) *Server {
 
 func (s *Server) RegisterRoutes() {
 	s.POST("/signup", s.createUser)
+	s.POST("/login", s.login)
+	s.POST("/logout", s.logout)
 }
 
 func (s *Server) createUser(ctx *gin.Context) {
@@ -47,9 +50,37 @@ func (s *Server) createUser(ctx *gin.Context) {
 
 	err = s.chatService.CreateUser(ctx, reqBody.Username, reqBody.Email, reqBody.Password)
 	if err != nil {
-		ctx.AbortWithStatus(http.StatusNotFound)
+		ctx.AbortWithStatus(http.StatusConflict)
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, true)
+}
+
+func (s *Server) login(ctx *gin.Context) {
+	reqBody := struct {
+		Email    string
+		Password string
+	}{}
+
+	err := ctx.BindJSON(&reqBody)
+	if err != nil {
+		ctx.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	token, err := s.chatService.Login(ctx, reqBody.Email, reqBody.Password)
+	if err != nil {
+		ctx.AbortWithStatus(http.StatusConflict)
+		return
+	}
+
+	ctx.SetCookie("jwt", token, 3600, "/", "localhost", false, true)
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "authorized"})
+}
+
+func (s *Server) logout(ctx *gin.Context) {
+	ctx.SetCookie("jwt", "", -1, "", "", false, true)
+	ctx.JSON(http.StatusOK, gin.H{"message": "logout successful"})
 }
