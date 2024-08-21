@@ -44,15 +44,16 @@ func NewService(log *slog.Logger) *Service {
 }
 
 func (s *Service) CreateUser(c context.Context, username, email, password string) error {
+	log := s.log.With("op", "chat.service.CreateUser")
+
 	ctx, cancel := context.WithTimeout(c, time.Duration(2)*time.Second)
 	defer cancel()
 
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		log.Error("Failed to hash password")
 		return err
 	}
-
-	// TODO: logging
 
 	err = s.queries.CreateUser(ctx, postgres.CreateUserParams{
 		Username: username,
@@ -60,6 +61,7 @@ func (s *Service) CreateUser(c context.Context, username, email, password string
 		Email:    email,
 	})
 	if err != nil {
+		log.Error("Failed to create user")
 		return err
 	}
 
