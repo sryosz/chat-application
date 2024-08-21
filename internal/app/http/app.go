@@ -34,5 +34,9 @@ func (a *App) Run(addr string) {
 		}
 	}()
 
+	go func() {
+		a.httpServer.Hub.Run()
+	}()
+
 	log.Info("HTTP server is running", slog.String("addr", addr))
 }
