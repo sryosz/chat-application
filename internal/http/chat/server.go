@@ -1,7 +1,8 @@
 package chat
 
 import (
-	"chat-application/internal/models"
+	ws "chat-application/internal/websocket"
+	wsmodels "chat-application/internal/websocket/models"
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -16,7 +17,7 @@ type chatService interface {
 
 type Server struct {
 	log *slog.Logger
-	Hub *models.Hub
+	Hub *ws.Hub
 	chatService
 	*gin.Engine
 }
@@ -28,7 +29,7 @@ func NewServer(log *slog.Logger) *Server {
 	return &Server{
 		log:         log,
 		chatService: service,
-		Hub:         models.NewHub(),
+		Hub:         ws.NewHub(),
 		Engine:      server,
 	}
 }
@@ -105,10 +106,10 @@ func (s *Server) createRoom(ctx *gin.Context) {
 		return
 	}
 
-	s.Hub.Rooms[reqBody.ID] = &models.Room{
+	s.Hub.Rooms[reqBody.ID] = &wsmodels.Room{
 		ID:      reqBody.ID,
 		Name:    reqBody.Name,
-		Clients: make(map[string]*models.Client),
+		Clients: make(map[string]*ws.Client),
 	}
 
 	ctx.JSON(http.StatusOK, reqBody)
@@ -133,15 +134,15 @@ func (s *Server) joinRoom(ctx *gin.Context) {
 	clientID := ctx.Query("userId")
 	username := ctx.Query("username")
 
-	client := &models.Client{
+	client := &ws.Client{
 		Conn:     conn,
-		Message:  make(chan *models.Message, 10),
+		Message:  make(chan *wsmodels.Message, 10),
 		ID:       clientID,
 		RoomID:   roomID,
 		Username: username,
 	}
 
-	msg := &models.Message{
+	msg := &wsmodels.Message{
 		Content:  "A new user has joined the room",
 		RoomID:   roomID,
 		Username: username,
