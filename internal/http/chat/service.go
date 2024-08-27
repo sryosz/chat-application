@@ -51,7 +51,7 @@ func (s *Service) CreateUser(c context.Context, username, email, password string
 
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		log.Error("Failed to hash password")
+		log.Error("Failed to hash password", "error", err)
 		return err
 	}
 
@@ -61,7 +61,7 @@ func (s *Service) CreateUser(c context.Context, username, email, password string
 		Email:    email,
 	})
 	if err != nil {
-		log.Error("Failed to create user")
+		log.Error("Failed to create user", "error", err)
 		return err
 	}
 
@@ -82,7 +82,7 @@ func (s *Service) Login(c context.Context, email, password string) (string, erro
 
 	err = bcrypt.CompareHashAndPassword(user.Password, []byte(password))
 	if err != nil {
-		log.Info("Invalid password")
+		log.Info("Invalid password", "error", err)
 		return "", err
 	}
 
